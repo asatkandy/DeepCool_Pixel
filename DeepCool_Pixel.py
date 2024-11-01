@@ -2,6 +2,9 @@ import os
 import sys
 import tkinter as tk
 import tkinter.filedialog as fi
+from PIL import ImageGrab
+import win32gui, time, ctypes
+from ctypes import wintypes
 
 row_n=40
 column_n=31
@@ -14,48 +17,17 @@ selected_color='white'
 case_color='white'
 default_color='#333132'
 
-widget_width=column_n*(pixel_size+2*outline_size)
-widget_height=row_n*(pixel_size+2*outline_size)
+widget_width=column_n*(pixel_size+2*outline_size)-outline_size-1
+widget_height=row_n*(pixel_size+2*outline_size)-outline_size-1
 window_width=round(widget_width+100)
 window_height=round(widget_height+105)
 
 pixel_color=['#FFB8CA','#CACAC8','#00A49A','#DE7C00','#FFE800','black','#FE5442','#CE70CC','white','#1295D8']
 pixel_text_color=['#B8FFED','#353537','#A4000A','#0062DE','#0017FF','white','#42ECFE','#70CE72','black','#D85512']
 
-root = tk.Tk()
-root.title('DeepCool_Pixel_CH160')
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-screen_height = int(screen_height-screen_height//10)
-root.geometry(f'{window_width}x{screen_height}+{(screen_width-window_width)//2}+0')
-root.resizable(False,True)
-root.configure(bg='#008c8c')
-DCP_menu=tk.Menu(root)
-root.config(menu=DCP_menu)
-
-f0=tk.Frame(root,height=100,width=widget_width)
-f1=tk.Frame(f0,height=100,width=widget_width//2)
-f2=tk.Frame(f0,height=100,width=widget_width//2)
-f2.grid_rowconfigure(0, weight=1)
-f2.grid_columnconfigure(tuple(range(10)), weight=1)
-fc1=tk.Frame(root,height=widget_height,width=widget_width)
-
-c1=tk.Canvas(fc1,bd=0,height=widget_height,width=widget_width,cursor='hand2')
-sc = tk.Scrollbar(fc1)
-sc.config(command=c1.yview)
-c1.config(yscrollcommand=sc.set)
-c1.config(scrollregion=(0, 0, widget_width, widget_height))
-
-f0.pack(pady=(5,0))
-f1.pack(side=tk.LEFT)
-f2.pack(side=tk.RIGHT)
-fc1.pack(pady=(5,0))
-c1.pack(side='left')
-sc.pack(side='right', fill='y')
-
 
 # コールバック関数をネストして定義
-def callback(event):
+def mouse_click(event):
     # print('x' + str(event.x) + 'y' + str(event.y))
     # print(color_c.get())
     # print(c1.itemcget(tagOrId=pixel_tag, option='fill'))
@@ -63,44 +35,50 @@ def callback(event):
     current_color = c1.itemcget(tagOrId=pixel_tag, option='fill')
     # print(pixel_tag)
     # print(current_color)
-    if selected_color == default_color:
-        c1.itemconfig(tagOrId=pixel_tag, fill=selected_color, outline=case_color)
-        if not current_color == default_color:
+
+    if color_c.get():
+        for k in range(0, column_n * square_end, square_end):
+            for m in range(0, row_n * square_end, square_end):
+                color_c_tag = 'x' + str(k // square_end) + 'y' + str(m // square_end)
+                if not c1.itemcget(tagOrId=color_c_tag,option='fill')==default_color:
+                    if c1.itemcget(tagOrId=color_c_tag,option='fill')==current_color:
+                        c1.itemconfig(tagOrId=color_c_tag, fill=selected_color,outline=selected_color)
+                        buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text'] - 1)
+                        buttons2[pixel_color.index(selected_color)].configure(text=buttons2[pixel_color.index(selected_color)]['text'] + 1)
+        color_c.set(False)
+    else:
+        if c1.itemcget(tagOrId=pixel_tag, option='fill')==default_color:
+            c1.itemconfig(tagOrId=pixel_tag,fill=selected_color,outline=selected_color)
+            # print(pixel_color.index(selected_color))
+            buttons2[pixel_color.index(selected_color)].configure(text=buttons2[pixel_color.index(selected_color)]['text']+1)
+        else:
+            c1.itemconfig(tagOrId=pixel_tag, fill=selected_color, outline=selected_color)
+            buttons2[pixel_color.index(selected_color)].configure(text=buttons2[pixel_color.index(selected_color)]['text'] + 1)
             buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text'] - 1)
+
+def mouse_click2(event):
+    # print('x' + str(event.x) + 'y' + str(event.y))
+    # print(color_c.get())
+    # print(c1.itemcget(tagOrId=pixel_tag, option='fill'))
+    pixel_tag='x' + str(int(event.x//square_end)) + 'y' + str(int(event.y//square_end))
+    current_color = c1.itemcget(tagOrId=pixel_tag, option='fill')
+    # print(pixel_tag)
+    # print(current_color)
+    if not current_color == default_color:
+        c1.itemconfig(tagOrId=pixel_tag, fill=default_color, outline=case_color)
+        buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text'] - 1)
         if color_c.get():
             for k in range(0, column_n * square_end, square_end):
                 for m in range(0, row_n * square_end, square_end):
                     color_c_tag = 'x' + str(k // square_end) + 'y' + str(m // square_end)
                     if not c1.itemcget(tagOrId=color_c_tag, option='fill') == default_color:
                         if c1.itemcget(tagOrId=color_c_tag, option='fill') == current_color:
-                            c1.itemconfig(tagOrId=color_c_tag, fill=selected_color, outline=case_color)
+                            c1.itemconfig(tagOrId=color_c_tag, fill=default_color, outline=case_color)
                             buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text'] - 1)
-    else:
-        if color_c.get():
-            for k in range(0, column_n * square_end, square_end):
-                for m in range(0, row_n * square_end, square_end):
-                    color_c_tag = 'x' + str(k // square_end) + 'y' + str(m // square_end)
-                    if not c1.itemcget(tagOrId=color_c_tag,option='fill')==default_color:
-                        if c1.itemcget(tagOrId=color_c_tag,option='fill')==current_color:
-                            c1.itemconfig(tagOrId=color_c_tag, fill=selected_color,outline=selected_color)
-                            buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text'] - 1)
-                            buttons2[pixel_color.index(selected_color)].configure(text=buttons2[pixel_color.index(selected_color)]['text'] + 1)
-        else:
-            if c1.itemcget(tagOrId=pixel_tag, option='fill')==default_color:
-                c1.itemconfig(tagOrId=pixel_tag,fill=selected_color,outline=selected_color)
-                # print(pixel_color.index(selected_color))
-                buttons2[pixel_color.index(selected_color)].configure(text=buttons2[pixel_color.index(selected_color)]['text']+1)
-            elif c1.itemcget(tagOrId=pixel_tag, option='fill')==selected_color:
-                c1.itemconfig(tagOrId=pixel_tag, fill=default_color, outline=case_color)
-                buttons2[pixel_color.index(selected_color)].configure(text=buttons2[pixel_color.index(selected_color)]['text'] - 1)
-            else:
-                c1.itemconfig(tagOrId=pixel_tag, fill=selected_color, outline=selected_color)
-                buttons2[pixel_color.index(selected_color)].configure(
-                    text=buttons2[pixel_color.index(selected_color)]['text'] + 1)
-                buttons2[pixel_color.index(current_color)].configure(
-                    text=buttons2[pixel_color.index(current_color)]['text'] - 1)
+            color_c.set(False)
 
-def callback2(event):
+
+def mouse_move(event):
     # sx=int(c1.winfo_rootx())+c1.winfo_width()-1
     # sy=int(c1.winfo_rooty())+c1.winfo_height()-1
     sx = c1.winfo_width()-2*outline_size
@@ -108,16 +86,24 @@ def callback2(event):
     if sx > event.x >= 0 and sy > event.y >= 0:
         pixel_tag='x' + str(int(event.x//square_end)) + 'y' + str(int(event.y//square_end))
         current_color = c1.itemcget(tagOrId=pixel_tag, option='fill')
-        if selected_color == default_color:
+        if not c1.itemcget(tagOrId=pixel_tag, option='fill')==selected_color:
+            c1.itemconfig(tagOrId=pixel_tag,fill=selected_color,outline=selected_color)
+            buttons2[pixel_color.index(selected_color)].configure(text=buttons2[pixel_color.index(selected_color)]['text']+1)
             if not current_color == default_color:
-                c1.itemconfig(tagOrId=pixel_tag, fill=selected_color, outline=case_color)
-                buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text'] - 1)
-        else:
-            if not c1.itemcget(tagOrId=pixel_tag, option='fill')==selected_color:
-                c1.itemconfig(tagOrId=pixel_tag,fill=selected_color,outline=selected_color)
-                buttons2[pixel_color.index(selected_color)].configure(text=buttons2[pixel_color.index(selected_color)]['text']+1)
-                if not current_color == default_color:
-                    buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text']-1)
+                buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text']-1)
+
+def mouse_move2(event):
+    # sx=int(c1.winfo_rootx())+c1.winfo_width()-1
+    # sy=int(c1.winfo_rooty())+c1.winfo_height()-1
+    sx = c1.winfo_width()-2*outline_size
+    sy = c1.winfo_height()-2*outline_size
+    if sx > event.x >= 0 and sy > event.y >= 0:
+        pixel_tag='x' + str(int(event.x//square_end)) + 'y' + str(int(event.y//square_end))
+        current_color = c1.itemcget(tagOrId=pixel_tag, option='fill')
+        if not current_color == default_color:
+            c1.itemconfig(tagOrId=pixel_tag, fill=default_color, outline=case_color)
+            buttons2[pixel_color.index(current_color)].configure(text=buttons2[pixel_color.index(current_color)]['text'] - 1)
+
 
 #　ケース色の選択
 def case_color_change():
@@ -157,7 +143,6 @@ def save_pixel():
         for s in range(0, column_n * square_end, square_end):
             data_tag='x' + str(s // square_end) + 'y' + str(t // square_end)
             dataset.append(c1.itemcget(tagOrId=data_tag, option='fill') + '\n')
-    print(dataset[2])
     user_folder = os.path.expanduser('~')
     folder = os.path.join(user_folder, 'Documents')
     save_name=fi.asksaveasfilename(filetypes=[('data files','*.txt')],initialdir=folder)
@@ -169,6 +154,41 @@ def save_pixel():
         f = open(save_file, 'w')
         f.writelines(dataset)
         f.close()
+
+# pngセーブ関数
+def save_png():
+        # フォルダPicturesに保存
+        user_folder = os.path.expanduser('~')
+        folder = os.path.join(user_folder, 'Pictures')
+        png_name = fi.asksaveasfilename(filetypes=[('image files', '*.png')], initialdir=folder)
+
+        if not png_name == '':
+            if not '.txt' in png_name:
+                png_file = os.path.join(folder, png_name + '.png')
+            else:
+                png_file = png_name
+
+            # ウィンドウのハンドルを取得
+            hwnd = win32gui.FindWindow(None, 'DeepCool_Pixel_CH160')
+            if hwnd:
+                # 前面に移動
+                # win32gui.SetForegroundWindow(hwnd)
+
+                # 1秒待つ
+                time.sleep(1)
+
+                # ずれを調整
+                f = ctypes.windll.dwmapi.DwmGetWindowAttribute
+                rect = ctypes.wintypes.RECT()
+                extended_frame_bounds = 9
+                f(ctypes.wintypes.HWND(hwnd),ctypes.wintypes.DWORD(extended_frame_bounds),ctypes.byref(rect),
+                  ctypes.sizeof(rect))
+
+                # 取得したウィンドウサイズでスクリーンショットを撮る
+                image = ImageGrab.grab((rect.left, rect.top, rect.right, rect.bottom))
+                image.save(png_file)
+
+# f'{window_width}x{screen_height}+{(screen_width-window_width)//2}+0'
 
 # ロード関数
 def load_pixel():
@@ -201,17 +221,6 @@ def reset_pixel():
     for c in range(10):
         buttons2[c].configure(text=0)
 
-## Pixel
-for x in range(0,column_n*square_end,square_end):
-    for y in range(0,row_n*square_end,square_end):
-        # コールバック関数にボタン番号の値を引数で渡す
-        # print(f'x{x}xo{x+box_end}y{y}yo{y+box_end}')
-        c1.create_rectangle(x+outline_size//2, y+outline_size//2, x+box_end+outline_size//2, y+box_end+outline_size//2, fill=default_color,outline='white',
-                            width=outline_size,outlineoffset=tk.CENTER,
-                            tags='x' + str(x//square_end) + 'y' + str(y//square_end))
-        c1.tag_bind('x' + str(x//square_end) + 'y' + str(y//square_end), '<Button-1>', callback)
-        c1.tag_bind('x' + str(x // square_end) + 'y' + str(y // square_end), '<B1-Motion>', callback2)
-        # print('x' + str(x//(box_end+outline_size)) + 'y' + str(y//(box_end+outline_size)))
 
 # カラーセレクト関数
 def color_select(event):
@@ -221,9 +230,71 @@ def color_select(event):
     selected_color_text=event.widget['fg']
     Selected_Button.configure(bg=selected_color,fg=selected_color_text)
 
+# 位置表示関数
+def show_position(event):
+    # print(str(event.x//square_end))
+    Position_Label.configure(text="("+str(event.x//square_end+1)+","+str(event.y//square_end+1)+")")
+    # Position_Label.configure(text="(" + str(event.x) + "," + str(event.y) + ")")
+
+# マウスホイールでスクロール
+def mouse_scroll(event):
+    if event.delta > 0:
+        c1.yview_scroll(-1, 'units')
+    elif event.delta < 0:
+        c1.yview_scroll(1, 'units')
+
 def quit_app():
     sys.exit()
 
+### ウイジェット
+
+root = tk.Tk()
+root.title('DeepCool_Pixel_CH160')
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+screen_height = int(screen_height-screen_height//10)
+root.geometry(f'{window_width}x{screen_height}+{(screen_width-window_width)//2}+0')
+root.resizable(False,True)
+root.configure(bg='#008c8c')
+DCP_menu=tk.Menu(root)
+root.config(menu=DCP_menu)
+
+f0=tk.Frame(root,height=100,width=widget_width)
+f1=tk.Frame(f0,height=100,width=widget_width//2)
+f2=tk.Frame(f0,height=100,width=widget_width//2)
+f2.grid_rowconfigure(0, weight=1)
+f2.grid_columnconfigure(tuple(range(10)), weight=1)
+fc1=tk.Frame(root,height=widget_height,width=widget_width)
+
+c1=tk.Canvas(fc1,bd=0,height=widget_height,width=widget_width,cursor='hand2')
+sc = tk.Scrollbar(fc1)
+sc.config(command=c1.yview)
+c1.config(yscrollcommand=sc.set)
+c1.config(scrollregion=(0, 0, widget_width, widget_height))
+c1.bind("<Motion>",show_position)
+c1.bind("<MouseWheel>",mouse_scroll)
+
+f0.pack(pady=(5,0))
+f1.pack(side=tk.LEFT)
+f2.pack(side=tk.LEFT)
+fc1.pack(pady=(5,0))
+c1.pack(side='left')
+sc.pack(side='right', fill='y')
+
+
+## Pixel
+for x in range(0,column_n*square_end,square_end):
+    for y in range(0,row_n*square_end,square_end):
+        # コールバック関数にボタン番号の値を引数で渡す
+        # print(f'x{x}xo{x+box_end}y{y}yo{y+box_end}')
+        c1.create_rectangle(x+outline_size//2, y+outline_size//2, x+box_end+outline_size//2, y+box_end+outline_size//2, fill=default_color,outline='white',
+                            width=outline_size,outlineoffset=tk.CENTER,
+                            tags='x' + str(x // square_end) + 'y' + str(y // square_end))
+        c1.tag_bind('x' + str(x//square_end) + 'y' + str(y//square_end), '<Button-1>', mouse_click)
+        c1.tag_bind('x' + str(x//square_end) + 'y' + str(y//square_end), '<B1-Motion>', mouse_move)
+        c1.tag_bind('x' + str(x//square_end) + 'y' + str(y//square_end), '<Button-3>', mouse_click2)
+        c1.tag_bind('x' + str(x//square_end) + 'y' + str(y//square_end), '<B3-Motion>', mouse_move2)
+        # print('x' + str(x//(box_end+outline_size)) + 'y' + str(y//(box_end+outline_size)))
 
 ## Frame1
 Case_Button=tk.Button(f1,bg='white',width=4,height=2,relief='ridge',text='Case',fg='black',command=case_color_change)
@@ -249,15 +320,17 @@ for j in range(10):
     buttons2.append(tk.Button(f2, bg=pixel_color[j],width=4,height=2,relief='ridge',text=0,fg=pixel_text_color[j]))
     buttons2[j].grid(row=0,column=j)
     buttons2[j].bind('<1>',color_select)
-default_button=tk.Button(f2, bg=default_color,width=4,height=2,relief='ridge',text='hole',fg='white')
-default_button.grid(row=0,column=11)
-default_button.bind('<1>',color_select)
+
+## Position Label
+Position_Label=tk.Label(f0,text="POS",width=8,height=2)
+Position_Label.pack(side=tk.RIGHT)
 
 # Menu
 menu_font=('',10)
 file_menu=tk.Menu(DCP_menu,tearoff=False,font=menu_font)
 file_menu.add_command(label='Save as txt',command=save_pixel)
-file_menu.add_command(label='Load',command=load_pixel)
+file_menu.add_command(label='Save as png',command=save_png)
+file_menu.add_command(label='Load from txt',command=load_pixel)
 reset_menu=tk.Menu(DCP_menu,tearoff=False,font=menu_font)
 reset_menu.add_command(label='Reset',command=reset_pixel)
 exit_menu=tk.Menu(DCP_menu,tearoff=False,font=menu_font)
@@ -268,3 +341,13 @@ DCP_menu.add_cascade(label='Reset',menu=reset_menu)
 DCP_menu.add_cascade(label='Exit',menu=exit_menu)
 
 root.mainloop()
+
+### 10/31 update ver0.1 not commited
+# 1.Change Button become deactivated when color change function is done.
+# 2.Hole Button is deleted.And now you can delete colors by right click or right dragging.
+# 3.SAVE as PNG is added in File menu.
+
+### 11/1 update ver0.1 not commited
+# 1.Position Label is added.
+# 2.found bug.boundary issue. ⇒　fixed.but boundary size is small now.
+# 3.You can scroll canvas with mouse wheel.
