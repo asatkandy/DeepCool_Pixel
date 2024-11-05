@@ -155,6 +155,20 @@ def save_pixel():
         f.writelines(dataset)
         f.close()
 
+#　クイックセーブ関数
+def quick_save():
+    dataset = []
+    for t in range(0, row_n * square_end, square_end):
+        for s in range(0, column_n * square_end, square_end):
+            data_tag='x' + str(s // square_end) + 'y' + str(t // square_end)
+            dataset.append(c1.itemcget(tagOrId=data_tag, option='fill') + '\n')
+    user_folder = os.path.expanduser('~')
+    folder = os.path.join(user_folder, 'Documents')
+    save_file = os.path.join(folder,'Q_save.txt')
+    f = open(save_file, 'w')
+    f.writelines(dataset)
+    f.close()
+
 # pngセーブ関数
 def save_png():
         # フォルダPicturesに保存
@@ -163,7 +177,7 @@ def save_png():
         png_name = fi.asksaveasfilename(filetypes=[('image files', '*.png')], initialdir=folder)
 
         if not png_name == '':
-            if not '.txt' in png_name:
+            if not '.png' in png_name:
                 png_file = os.path.join(folder, png_name + '.png')
             else:
                 png_file = png_name
@@ -188,8 +202,6 @@ def save_png():
                 image = ImageGrab.grab((rect.left, rect.top, rect.right, rect.bottom))
                 image.save(png_file)
 
-# f'{window_width}x{screen_height}+{(screen_width-window_width)//2}+0'
-
 # ロード関数
 def load_pixel():
     user_folder = os.path.expanduser('~')
@@ -211,6 +223,26 @@ def load_pixel():
                 # print(load_tag)
         fl.close()
 
+# クイックロード関数
+def quick_load():
+    user_folder = os.path.expanduser('~')
+    folder = os.path.join(user_folder, 'Documents')
+    fp=os.path.join(folder,'Q_save.txt')
+    if not fp=='':
+        reset_pixel()
+        fl=open(fp)
+        dataset2=fl.readlines()
+        dataset2_rs=[line.rstrip('\n') for line in dataset2]
+        # print(dataset2_rs)
+        v=0
+        for l in dataset2_rs:
+            load_tag='x' + str(v%column_n) +'y' + str(v//column_n)
+            v=v+1
+            if not l == default_color:
+                c1.itemconfig(tagOrId=load_tag, fill=l, outline=l)
+                buttons2[pixel_color.index(l)].configure(text=buttons2[pixel_color.index(l)]['text'] + 1)
+                # print(load_tag)
+        fl.close()
 
 # リセット関数
 def reset_pixel():
@@ -305,12 +337,12 @@ color_c=tk.BooleanVar()
 color_c.set(False)
 Change_Button=tk.Checkbutton(f1,bg='yellow',width=6,height=2,relief='ridge',text='Change',fg='black',variable=color_c)
 Change_Button.pack(side=tk.LEFT)
+Q_Save_Button=tk.Button(f1,bg='brown',width=4,height=2,relief='ridge',text='QSave',command=quick_save)
+Q_Save_Button.pack(side=tk.LEFT)
+Q_Load_Button=tk.Button(f1,bg='green',width=4,height=2,relief='ridge',text='QLoad',command=quick_load)
+Q_Load_Button.pack(side=tk.LEFT)
 Selected_Button=tk.Button(f1,bg=selected_color,width=4,height=2,relief='flat',text='Color',fg='black')
 Selected_Button.pack(side=tk.LEFT)
-# Save_Button=tk.Button(f1,bg='yellow',width=4,height=2,relief='ridge',text='Save',command=save_pixel)
-# Save_Button.pack(side=tk.LEFT)
-# Load_Button=tk.Button(f1,bg='green',width=4,height=2,relief='ridge',text='Load',command=load_pixel)
-# Load_Button.pack(side=tk.LEFT)
 # Reset_Button=tk.Button(f1,bg=default_color,width=4,height=2,relief='ridge',text='Reset',command=reset_pixel)
 # Reset_Button.pack(side=tk.RIGHT)
 
@@ -347,7 +379,10 @@ root.mainloop()
 # 2.Hole Button is deleted.And now you can delete colors by right click or right dragging.
 # 3.SAVE as PNG is added in File menu.
 
-### 11/1 update ver0.1 not commited
+### 11/1 update ver0.1 commited
 # 1.Position Label is added.
 # 2.found bug.boundary issue. ⇒　fixed.but boundary size is small now.
 # 3.You can scroll canvas with mouse wheel.
+
+### 11/2 update ver 0.2 commited
+# 1.QSave and QLoad added
